@@ -1,7 +1,8 @@
 ---
 output:
   html_document:
-    self_contained: false
+    self_contained: no
+  pdf_document: default
 ---
 
 # Graphing State Populations by Race
@@ -38,7 +39,8 @@ If the file does not already exist, executing the code will download population 
 if (file.exists('data/state_populations_by_race')) {
   df <- readr::read_rds('data/state_populations_by_race')
 } else {
-  list_of_variables = c('P008003', 'P008004', 'P008005', 'P008006', 'P004001', 'P004002', 'P004003')
+  list_of_variables = c('P008003', 'P008004', 'P008005', 'P008006',
+                        'P004001', 'P004002', 'P004003')
   
   df <- tidycensus::get_decennial(geography = 'state',
                                   year = 2010,
@@ -201,6 +203,8 @@ Our data set is now 52 x 14 with field names that are much easier to understand 
 
 Let's start visualizing our data.
 
+#### Top 10 states for each racial/ethnic group
+
 ```{r graph1, message = FALSE}
 sorted_df <- df %>%
   as.data.frame() %>%
@@ -221,7 +225,10 @@ sorted_df <- df %>%
 sorted_df %>%
   ggplot(aes(x = order, y = value)) +
   geom_col(fill = 'dark blue') +
-  geom_text(hjust = -0.1, size = 2, aes(label = sprintf("%s: %s", state, scales::comma(value))), color = 'black') +
+  geom_text(hjust = -0.1,
+            size = 2,
+            aes(label = sprintf("%s: %s", state, scales::comma(value))),
+            color = 'black') +
   coord_flip(ylim = c(0, 30000000)) + 
   labs(title = 'States with Largest Population of Racial/Ethnic Groups',
        subtitle = 'Top 10 States',
@@ -234,6 +241,8 @@ sorted_df %>%
 
 
 ```
+
+#### Top 10 states for the percentage of the population made up of each ethnic group
 
 ```{r graph2, message = FALSE}
 sorted_df <- df %>%
@@ -257,7 +266,10 @@ sorted_df <- df %>%
 sorted_df %>%
   ggplot(aes(x = order, y = value)) +
   geom_col(fill = 'dark blue') +
-  geom_text(hjust = -0.1, size = 2, aes(label = sprintf("%s: %s", state, scales::percent(value))), color = 'black') +
+  geom_text(hjust = -0.1,
+            size = 2,
+            aes(label = sprintf("%s: %s", state, scales::percent(value))),
+            color = 'black') +
   coord_flip(ylim = c(0, 1.3)) + 
   labs(title = 'States with Largest Proportions of Racial/Ethnic Groups',
        subtitle = 'Top 10 States',
