@@ -1,3 +1,9 @@
+---
+output:
+  html_document:
+    self_contained: false
+---
+
 # Graphing State Populations by Race
 
 This exploratory analysis will leverage the [`tidycensus`](https://walkerke.github.io/tidycensus/) package by [Kyle Walker](https://www.github.com/walkerke) and the [`tidyverse`](https://www.tidyverse.org/) suite of packages from [RStudio](https://www.rstudio.com/).
