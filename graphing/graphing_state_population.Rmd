@@ -195,7 +195,7 @@ Our data set is now 52 x 14 with field names that are much easier to understand 
 
 Let's start visualizing our data.
 
-```{r, message = FALSE}
+```{r graph1, message = FALSE}
 sorted_df <- df %>%
   as.data.frame() %>%
   dplyr::select(state,
@@ -229,7 +229,7 @@ sorted_df %>%
 
 ```
 
-```{r, message = FALSE}
+```{r graph2, message = FALSE}
 sorted_df <- df %>%
   as.data.frame() %>%
   dplyr::select(state,
@@ -261,7 +261,6 @@ sorted_df %>%
   theme_classic() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
-
 
 ```
 
