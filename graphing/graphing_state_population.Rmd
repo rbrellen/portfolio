@@ -1,0 +1,267 @@
+# Graphing State Populations by Race
+
+This exploratory analysis will leverage the [`tidycensus`](https://walkerke.github.io/tidycensus/) package by [Kyle Walker](https://www.github.com/walkerke) and the [`tidyverse`](https://www.tidyverse.org/) suite of packages from [RStudio](https://www.rstudio.com/).
+
+## Objectives
+The goals of this analysis are as follows:
+
+* Demonstrate the ability to use `tidyverse` functions--especially `readr` and `dplyr`--to import, export, and manipulate data.
+* Demonstrate the ability to use `ggplot2` functions to visualize data.
+* Demonstrate the ability to map data both statically and interactively.
+
+## Analysis
+
+### Part 1: Setting up the project and importing data
+First, we need to load the required packages for our analysis.
+
+```{r echo = TRUE}
+# Load packages
+library(tidycensus)
+library(tidyverse)
+library(scales)
+```
+
+If you do not already have a U.S. Census API key, you will need to request one from the U.S. Census Bureau [here](http://api.census.gov/data/key_signup.html).
+
+The following code block checks to see if you have a file called `state_populations_by_race` stored in your `data` subdirectory.
+If you cloned this repository from [Ryan Brellenthin's `portfolio` repository](https://www.github.com/rbrellen/portfolio), the subdirectory and data will already be included.
+If the file exists in the subdirectory, executing the code will read the data set is in as an RDS file and store it as your `df` variable.
+If the file does not already exist, executing the code will download population data from the 2010 Census, store it to a `df` variable, and save it as an RDS object in your `data` subdirectory.
+```{r echo = TRUE}
+# Pull the population of each state by race and store as RDS object
+if (file.exists('data/state_populations_by_race')) {
+  df <- readr::read_rds('data/state_populations_by_race')
+} else {
+  list_of_variables = c('P008003', 'P008004', 'P008005', 'P008006', 'P004001', 'P004002', 'P004003')
+  
+  df <- tidycensus::get_decennial(geography = 'state',
+                                  year = 2010,
+                                  variables = list_of_variables,
+                                  output = 'wide',
+                                  geometry = TRUE,
+                                  summary_var = 'P001001',
+                                  cache_table = TRUE)
+  readr::write_rds(df, 'data/state_populations_by_race')
+  rm(list_of_variables)
+}
+```
+Note my preference for placing each parameter and argument of the `tidycensus::get_decennial` function call on a separate line.
+I do not do this for every function call, but when the function involves a larger number of parameters, I find it helpful to read each one on a clean line.
+
+You should now have a 52 row by 10 column tibble called `df` variable with the following dimensions and class attributes.
+```{r echo = TRUE, collapse = TRUE}
+dim(df)
+class(df)
+```
+
+### Part 2: Exploring the data
+
+Because we are working with a tibble instead of a standard data frame, we can feel confident that our data will print *relatively* cleanly. Let's go ahead and print the data frame.
+```{r collapse = TRUE}
+df
+```
+
+A few observations from this printout of our data:
+
+* As we saw above when we called the `class` function, the `df` object is more than a standard data frame.
+  The main reason for the difference is the inclusion of the `geometry` field.
+  Each record within this field is actually its own list of coordinates, which will be helpful when it comes time to graph.
+  * The first several rows (*geometry type* through *proj4string* provide information about the geometric features of the object that will come in handy during graphing.
+  * Next, we see that, as with our `dim` function call, our tibble is 52 x 11.
+  * We see the first 9 fields (along with data type) for the first 10 rows of data.
+  * We then see that there are 42 more rows and 2 more fields.
+    Those field names and data types are then printed.
+    While most of the fields represent Census data values, a few are worth calling out:
+    * `summary_var` was specified in the original `tidycensus::get_decennial` function call.
+      We know from that function call that it represents the total population in the state and can be used as a denominator for creating percentages.
+    * `geometry` contains a list of coordinates for each state, as noted above.
+      This list of coordinates allows R (and other mapping software packages) to draw the state boundatries by connecting each of the data points with a line.
+      
+Personally, I also enjoy the `dplyr::glimpse` function since it allows me to see a few sample data points for each field and arranges it in a way in which I don't have to worry about how many columns are in my data set.
+Let's take a look at what our data set looks like using that function.
+
+```{r collapse = TRUE}
+dplyr::glimpse(df)
+```
+
+From now on in this analysis, if we need to see our data, we will try to use the `dplyr::glimpse` function.
+
+### Part 3: Manipulating the data
+
+Our data set is still a bit unwieldy, so let's do some data wrangling to get it a more workable place.
+Here are some things we will want to do:
+
+1. Make human-readable field names for Census variables
+1. Remove unwanted fields
+1. Create fields to represent racial or ethnic groups as a percentage of the population
+1. Change field names to lowercase
+
+#### Make human-readable field names
+
+Using the `dplyr::rename` function, we can specify which variable we would like to target and how we would like to rename the variable.
+
+```{r collapse = TRUE}
+df <- df %>% 
+  dplyr::rename(white = P008003,
+                black = P008004,
+                american_indian = P008005,
+                asian = P008006,
+                hispanic = P004003,
+                total_population = summary_value)
+```
+
+#### Remove unwanted fields
+
+As we were going through the renaming process, we realized that some fields from our initial data set are not too meaningful.
+For example, *P004001* is identical to the *summary_value* field--both represent the total state population.
+We intended to use the *summary_value* field but did not realize the duplciation, so we can get rid of *P004001* (which one you choose to get rid of does not actually matter).
+Also, because we are more interested in the Hispanic population in each state but will not explicitly measure the non-Hispanic population of each state, we can remove *P004002*.
+To make these changes, we will use the `dplyr::select` function.
+
+```{r collapse = TRUE}
+df <- df %>% 
+  dplyr::select(-P004001, -P004002)
+```
+
+Note that, because we are only passing a couple arguments into the `dplyr::select` function, I do not find it visually helpful to set each one on a separate line.
+However, if that were your preference, you could certainly do so.
+
+#### Create fields to represent percentages
+
+We can create new fields using the `dplyr::mutate` function, with simple arithmetic being used to define each new field.
+
+```{r collapse = TRUE}
+df <- df %>% 
+  dplyr::mutate(pct_white           = white / total_population,
+                pct_black           = black / total_population,
+                pct_american_indian = american_indian / total_population,
+                pct_asian           = asian / total_population,
+                pct_hispanic        = hispanic / total_population)
+```
+
+Note that, because the number of spaces do not matter to how the software operates, it is sometimes more aesthetically pleasing and more easily readable to line up each line's equal sign.
+
+#### Change field names to lowercase
+
+Sometimes, for the sake of consistency and clean code, you may want to change the format of your field names.
+In this instance, we would like all of our fields to be lowercase and to adhere to ["snake case"](https://en.wikipedia.org/wiki/Snake_case).
+That preference means we still need to clean up the variable names for *GEOID* and *NAME*.
+
+```{r collapse = TRUE}
+df <- df %>% 
+  dplyr::rename(geoid = GEOID,
+                state = NAME)
+```
+
+*Hmm...*, you might be saying, *So we only had two arguments for the `dplyr::rename` function, but we still decided to split them onto separate lines?*
+
+Valid point.
+Although each of these example code blocks is taking place in isolation, when writing code, the general guideline is to choose what you prefer but *be consistent!*
+
+#### Bringing it all together
+
+The beauty of the `tidyverse` functions is that, using the `%>%` (pipe) operator, we can chain things together better than we did in each of the four steps above.
+Let's redo our work--but all in one code block.
+Then, let's use `dplyr::glimpse` to see what our new data set looks like.
+
+```{r echo = FALSE}
+df <- readr::read_rds('data/state_populations_by_race')
+```
+
+
+```{r, collapse = TRUE}
+df <- df %>% 
+  dplyr::select(-P004001, -P004002) %>% 
+  dplyr::rename(geoid = GEOID,
+                state = NAME,
+                white = P008003,
+                black = P008004,
+                american_indian  = P008005,
+                asian = P008006,
+                hispanic = P004003,
+                total_population = summary_value) %>% 
+  dplyr::mutate(pct_white = white / total_population,
+                pct_black = black / total_population,
+                pct_american_indian = american_indian / total_population,
+                pct_asian = asian / total_population,
+                pct_hispanic = hispanic / total_population)
+
+glimpse(df)
+```
+
+Our data set is now 52 x 14 with field names that are much easier to understand without needing to reference a data dictionary.
+
+### Part 4: Visualizing the data using graphs
+
+Let's start visualizing our data.
+
+```{r, message = FALSE}
+sorted_df <- df %>%
+  as.data.frame() %>%
+  dplyr::select(state,
+                White = white,
+                `African American` = black,
+                Latino = hispanic,
+                `Asian American` = asian) %>%
+  dplyr::as_tibble() %>%
+  tidyr::gather(key = variable, value = value, -state) %>%
+  dplyr::group_by(variable) %>% 
+  dplyr::top_n(10, value) %>% 
+  dplyr::arrange(variable, desc(value)) %>% 
+  dplyr::mutate(order = factor(-1 * row_number())) %>% 
+  dplyr::arrange(variable, order)
+
+
+sorted_df %>%
+  ggplot(aes(x = order, y = value)) +
+  geom_col(fill = 'dark blue') +
+  geom_text(hjust = -0.1, size = 2, aes(label = sprintf("%s: %s", state, scales::comma(value))), color = 'black') +
+  coord_flip(ylim = c(0, 30000000)) + 
+  labs(title = 'States with Largest Population of Racial/Ethnic Groups',
+       subtitle = 'Top 10 States',
+       x = 'State',
+       y = 'Population of Each Group') +
+  facet_wrap(~ variable, nrow = 2, scales = 'free_y') +
+  theme_classic() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+
+```
+
+```{r, message = FALSE}
+sorted_df <- df %>%
+  as.data.frame() %>%
+  dplyr::select(state,
+                `% White` = pct_white,
+                `% African American` = pct_black,
+                `% Latino` = pct_hispanic,
+                `% Asian American` = pct_asian) %>%
+  dplyr::as_tibble() %>%
+  tidyr::gather(key = variable, value = value, -state) %>%
+  dplyr::group_by(variable) %>% 
+  dplyr::top_n(10, value) %>% 
+  dplyr::arrange(variable, desc(value)) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(order = factor(-1 * row_number()),
+                variable = stringr::str_to_title(variable)) %>% 
+  dplyr::arrange(variable, order)
+
+
+sorted_df %>%
+  ggplot(aes(x = order, y = value)) +
+  geom_col(fill = 'dark blue') +
+  geom_text(hjust = -0.1, size = 2, aes(label = sprintf("%s: %s", state, scales::percent(value))), color = 'black') +
+  coord_flip(ylim = c(0, 1.3)) + 
+  labs(title = 'States with Largest Proportions of Racial/Ethnic Groups',
+       subtitle = 'Top 10 States',
+       x = 'State',
+       y = '% of Population in Each Group') +
+  facet_wrap(~ variable, nrow = 2, scales = 'free_y') +
+  theme_classic() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+
+```
+
