@@ -21,7 +21,7 @@ The goals of this analysis are as follows:
 ### Part 1: Setting up the project and importing data
 First, we need to load the required packages for our analysis.
 
-```{r echo = TRUE}
+```{r echo = TRUE, message = FALSE}
 # Load packages
 library(tidycensus)
 library(tidyverse)
@@ -203,9 +203,32 @@ Our data set is now 52 x 14 with field names that are much easier to understand 
 
 Let's start visualizing our data.
 
+#### States by total population
+
+```{r total-population, message = FALSE}
+df %>% 
+  ggplot(aes(x = reorder(state, total_population), y = total_population)) +
+  geom_col(fill = 'dark blue') +
+  geom_text(hjust = -0.1,
+            size = 1.5,
+            aes(label = scales::comma(total_population)),
+            color = 'black') +
+  coord_flip(ylim = c(0, 40000000)) +
+  labs(title = 'States by Total Population',
+       caption = 'Source: United States Census Bureau, 2010 Decennial Census',
+       x = 'State',
+       y = 'Total Population') +
+  theme_classic() +
+  theme(axis.text.y = element_text(size = 5),
+        plot.caption = element_text(hjust = 0, face = 'italic')) +
+  scale_y_continuous(labels = scales::comma)
+  
+```
+
+
 #### Top 10 states for each racial/ethnic group
 
-```{r graph1, message = FALSE}
+```{r top-ten-population, message = FALSE}
 sorted_df <- df %>%
   as.data.frame() %>%
   dplyr::select(state,
@@ -232,19 +255,21 @@ sorted_df %>%
   coord_flip(ylim = c(0, 30000000)) + 
   labs(title = 'States with Largest Population of Racial/Ethnic Groups',
        subtitle = 'Top 10 States',
+       caption = 'Source: United States Census Bureau, 2010 Decennial Census',
        x = 'State',
        y = 'Population of Each Group') +
   facet_wrap(~ variable, nrow = 2, scales = 'free_y') +
   theme_classic() +
   theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        plot.caption = element_text(hjust = 0, face = 'italic'))
 
 
 ```
 
 #### Top 10 states for the percentage of the population made up of each ethnic group
 
-```{r graph2, message = FALSE}
+```{r top-ten-percentage, message = FALSE}
 sorted_df <- df %>%
   as.data.frame() %>%
   dplyr::select(state,
@@ -273,12 +298,41 @@ sorted_df %>%
   coord_flip(ylim = c(0, 1.3)) + 
   labs(title = 'States with Largest Proportions of Racial/Ethnic Groups',
        subtitle = 'Top 10 States',
+       caption = 'Source: United States Census Bureau, 2010 Decennial Census',
        x = 'State',
        y = '% of Population in Each Group') +
   facet_wrap(~ variable, nrow = 2, scales = 'free_y') +
   theme_classic() +
   theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
+        axis.ticks = element_blank(),
+        plot.caption = element_text(hjust = 0, face = 'italic'))
 
+```
+
+### Part 5: Static Mapping
+
+```{r map-total-population, message = FALSE}
+contiguous <- df %>% dplyr::filter(!state %in% c('Hawaii', 'Alaska', 'Puerto Rico'))
+
+contiguous %>% 
+  ggplot(aes(fill = total_population)) +
+  geom_sf() +
+  coord_sf(crs = 5070, datum = NA) +
+  labs(title = 'Total Population by State',
+       caption = 'Source: United States Census Bureau, 2010 Decennial Census') +
+  theme_classic() +
+  theme(legend.position = 'bottom',
+        plot.caption = element_text(hjust = 0, face = 'italic')) +
+  scale_fill_viridis_c('Total Population',
+                       option = 'magma',
+                       direction = -1,
+                       begin = 0.5,
+                       end = 1,
+                       limits = c(0, 40000000),
+                       labels = scales::comma,
+                       guide = guide_colorbar(
+                         direction = 'horizontal',
+                         barheight = unit(2, units = 'mm'),
+                         barwidth = unit(100, units = 'mm')))
 ```
 
