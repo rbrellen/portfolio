@@ -215,6 +215,7 @@ df %>%
             color = 'black') +
   coord_flip(ylim = c(0, 40000000)) +
   labs(title = 'States by Total Population',
+       subtitle = 'Includes the District of Columbia and Puerto Rico',
        caption = 'Source: United States Census Bureau, 2010 Decennial Census',
        x = 'State',
        y = 'Total Population') +
@@ -319,6 +320,7 @@ contiguous %>%
   geom_sf() +
   coord_sf(crs = 5070, datum = NA) +
   labs(title = 'Total Population by State',
+       subtitle = 'Limited to 48 contiguous states and the District of Columbia',
        caption = 'Source: United States Census Bureau, 2010 Decennial Census') +
   theme_classic() +
   theme(legend.position = 'bottom',

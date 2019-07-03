@@ -393,6 +393,7 @@ glimpse(df)
             color = &#39;black&#39;) +
   coord_flip(ylim = c(0, 40000000)) +
   labs(title = &#39;States by Total Population&#39;,
+       subtitle = &#39;Includes the District of Columbia and Puerto Rico&#39;,
        caption = &#39;Source: United States Census Bureau, 2010 Decennial Census&#39;,
        x = &#39;State&#39;,
        y = &#39;Total Population&#39;) +
@@ -490,6 +491,7 @@ contiguous %&gt;%
   geom_sf() +
   coord_sf(crs = 5070, datum = NA) +
   labs(title = &#39;Total Population by State&#39;,
+       subtitle = &#39;Limited to 48 contiguous states and the District of Columbia&#39;,
        caption = &#39;Source: United States Census Bureau, 2010 Decennial Census&#39;) +
   theme_classic() +
   theme(legend.position = &#39;bottom&#39;,
