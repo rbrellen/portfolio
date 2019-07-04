@@ -484,6 +484,8 @@ sorted_df %&gt;%
 </div>
 <div id="part-5-static-mapping" class="section level3">
 <h3>Part 5: Static Mapping</h3>
+<div id="total-population" class="section level4">
+<h4>Total population</h4>
 <pre class="r"><code>contiguous &lt;- df %&gt;% dplyr::filter(!state %in% c(&#39;Hawaii&#39;, &#39;Alaska&#39;, &#39;Puerto Rico&#39;))
 
 contiguous %&gt;% 
@@ -508,6 +510,83 @@ contiguous %&gt;%
                          barheight = unit(2, units = &#39;mm&#39;),
                          barwidth = unit(100, units = &#39;mm&#39;)))</code></pre>
 <p><img src="graphing_state_population_files/figure-html/map-total-population-1.png" width="672" /></p>
+</div>
+<div id="population-by-racialethnic-group" class="section level4">
+<h4>Population by racial/ethnic group</h4>
+<pre class="r"><code>contiguous &lt;- df %&gt;% 
+  dplyr::select(state,
+                geoid,
+                White = white,
+                `African American` = black,
+                Latino = hispanic,
+                `Asian American` = asian,
+                geometry) %&gt;% 
+  dplyr::filter(!state %in% c(&#39;Hawaii&#39;, &#39;Alaska&#39;, &#39;Puerto Rico&#39;)) %&gt;% 
+  tidyr::gather(key = variable, value = value, -state, -geometry, -geoid)
+
+
+contiguous %&gt;%
+  ggplot(aes(fill = value)) +
+  geom_sf() +
+  facet_wrap(~variable, nrow = 2) +
+  coord_sf(crs = 5070, datum = NA) +
+  labs(title = &#39;Total Racial/Ethnic Group Population by State&#39;,
+       subtitle = &#39;Limited to 48 contiguous states and the District of Columbia&#39;,
+       caption = &#39;Source: United States Census Bureau, 2010 Decennial Census&#39;) +
+  theme_classic() +
+  theme(legend.position = &#39;bottom&#39;,
+        plot.caption = element_text(hjust = 0, face = &#39;italic&#39;)) +
+  scale_fill_viridis_c(&#39;Total Group Population&#39;,
+                       option = &#39;magma&#39;,
+                       direction = -1,
+                       begin = 0.5,
+                       end = 1,
+                       limits = c(0, 40000000),
+                       labels = scales::comma,
+                       guide = guide_colorbar(
+                         direction = &#39;horizontal&#39;,
+                         barheight = unit(2, units = &#39;mm&#39;),
+                         barwidth = unit(100, units = &#39;mm&#39;)))</code></pre>
+<p><img src="graphing_state_population_files/figure-html/map-population-by-group-1.png" width="672" /></p>
+</div>
+<div id="percentage-of-population-by-racialethnic-group" class="section level4">
+<h4>Percentage of population by racial/ethnic group</h4>
+<pre class="r"><code>contiguous &lt;- df %&gt;% 
+  dplyr::select(state,
+                geoid,
+                `% White` = pct_white,
+                `% African American` = pct_black,
+                `% Latino` = pct_hispanic,
+                `% Asian American` = pct_asian,
+                geometry) %&gt;% 
+  dplyr::filter(!state %in% c(&#39;Hawaii&#39;, &#39;Alaska&#39;, &#39;Puerto Rico&#39;)) %&gt;% 
+  tidyr::gather(key = variable, value = value, -state, -geometry, -geoid)
+
+
+contiguous %&gt;%
+  ggplot(aes(fill = value)) +
+  geom_sf() +
+  facet_wrap(~variable, nrow = 2) +
+  coord_sf(crs = 5070, datum = NA) +
+  labs(title = &#39;Racial/Ethnic Group as Percent of State Population&#39;,
+       subtitle = &#39;Limited to 48 contiguous states and the District of Columbia&#39;,
+       caption = &#39;Source: United States Census Bureau, 2010 Decennial Census&#39;) +
+  theme_classic() +
+  theme(legend.position = &#39;bottom&#39;,
+        plot.caption = element_text(hjust = 0, face = &#39;italic&#39;)) +
+  scale_fill_viridis_c(&#39;Total Group Population&#39;,
+                       option = &#39;magma&#39;,
+                       direction = -1,
+                       begin = 0.5,
+                       end = 1,
+                       limits = c(0, 1),
+                       labels = scales::percent,
+                       guide = guide_colorbar(
+                         direction = &#39;horizontal&#39;,
+                         barheight = unit(2, units = &#39;mm&#39;),
+                         barwidth = unit(100, units = &#39;mm&#39;)))</code></pre>
+<p><img src="graphing_state_population_files/figure-html/map-percent-population-by-group-1.png" width="672" /></p>
+</div>
 </div>
 </div>
 </div>

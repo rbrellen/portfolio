@@ -312,6 +312,8 @@ sorted_df %>%
 
 ### Part 5: Static Mapping
 
+#### Total population
+
 ```{r map-total-population, message = FALSE}
 contiguous <- df %>% dplyr::filter(!state %in% c('Hawaii', 'Alaska', 'Puerto Rico'))
 
@@ -338,3 +340,80 @@ contiguous %>%
                          barwidth = unit(100, units = 'mm')))
 ```
 
+#### Population by racial/ethnic group
+
+```{r map-population-by-group, message = FALSE}
+contiguous <- df %>% 
+  dplyr::select(state,
+                geoid,
+                White = white,
+                `African American` = black,
+                Latino = hispanic,
+                `Asian American` = asian,
+                geometry) %>% 
+  dplyr::filter(!state %in% c('Hawaii', 'Alaska', 'Puerto Rico')) %>% 
+  tidyr::gather(key = variable, value = value, -state, -geometry, -geoid)
+
+
+contiguous %>%
+  ggplot(aes(fill = value)) +
+  geom_sf() +
+  facet_wrap(~variable, nrow = 2) +
+  coord_sf(crs = 5070, datum = NA) +
+  labs(title = 'Total Racial/Ethnic Group Population by State',
+       subtitle = 'Limited to 48 contiguous states and the District of Columbia',
+       caption = 'Source: United States Census Bureau, 2010 Decennial Census') +
+  theme_classic() +
+  theme(legend.position = 'bottom',
+        plot.caption = element_text(hjust = 0, face = 'italic')) +
+  scale_fill_viridis_c('Total Group Population',
+                       option = 'magma',
+                       direction = -1,
+                       begin = 0.5,
+                       end = 1,
+                       limits = c(0, 40000000),
+                       labels = scales::comma,
+                       guide = guide_colorbar(
+                         direction = 'horizontal',
+                         barheight = unit(2, units = 'mm'),
+                         barwidth = unit(100, units = 'mm')))
+```
+
+#### Percentage of population by racial/ethnic group
+
+```{r map-percent-population-by-group, message = FALSE}
+contiguous <- df %>% 
+  dplyr::select(state,
+                geoid,
+                `% White` = pct_white,
+                `% African American` = pct_black,
+                `% Latino` = pct_hispanic,
+                `% Asian American` = pct_asian,
+                geometry) %>% 
+  dplyr::filter(!state %in% c('Hawaii', 'Alaska', 'Puerto Rico')) %>% 
+  tidyr::gather(key = variable, value = value, -state, -geometry, -geoid)
+
+
+contiguous %>%
+  ggplot(aes(fill = value)) +
+  geom_sf() +
+  facet_wrap(~variable, nrow = 2) +
+  coord_sf(crs = 5070, datum = NA) +
+  labs(title = 'Racial/Ethnic Group as Percent of State Population',
+       subtitle = 'Limited to 48 contiguous states and the District of Columbia',
+       caption = 'Source: United States Census Bureau, 2010 Decennial Census') +
+  theme_classic() +
+  theme(legend.position = 'bottom',
+        plot.caption = element_text(hjust = 0, face = 'italic')) +
+  scale_fill_viridis_c('Total Group Population',
+                       option = 'magma',
+                       direction = -1,
+                       begin = 0.5,
+                       end = 1,
+                       limits = c(0, 1),
+                       labels = scales::percent,
+                       guide = guide_colorbar(
+                         direction = 'horizontal',
+                         barheight = unit(2, units = 'mm'),
+                         barwidth = unit(100, units = 'mm')))
+```
