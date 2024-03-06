@@ -35,5 +35,5 @@ Additionally, several publicly available data sets will be used for additional m
 
 * Federal Reserve Economic Data (FRED)
 * City of Boston public data
-* US Census data
+* [US Census data](us_population/)
 * US federal election data
